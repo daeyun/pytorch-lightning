@@ -32,6 +32,7 @@ from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from tests.base import EvalModelTemplate, BoringModel
+from tests.base.boring_model import count_calls
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -528,10 +529,11 @@ def test_checkpoint_repeated_strategy(tmpdir):
 
     class ExtendedBoringModel(BoringModel):
 
+        @count_calls
         def validation_step(self, batch, batch_idx):
             output = self.layer(batch)
             loss = self.loss(batch, output)
-            return {"val_loss": loss}
+            self.log('val_loss', loss)
 
     model = ExtendedBoringModel()
     model.validation_step_end = None
@@ -551,7 +553,11 @@ def test_checkpoint_repeated_strategy(tmpdir):
     assert str(os.listdir(tmpdir)) == "['epoch=00.ckpt', 'lightning_logs']"
     assert str(os.listdir(osp.join(tmpdir, 'lightning_logs'))) == "['version_0']"
 
-    assert [*model._func_called_count] == ['training_step', 'training_step_end', 'training_epoch_end', 'test_step', 'test_epoch_end']
+    assert {*model._func_called_count} == {
+        'training_step', 'training_step_end', 'training_epoch_end',
+        'test_step', 'test_epoch_end',
+        'validation_step'
+    }
 
     assert model.num_calls('training_step') == 2
     assert model.num_calls('training_step_end') == 2
