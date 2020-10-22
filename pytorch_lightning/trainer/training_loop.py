@@ -127,7 +127,7 @@ class TrainLoop:
             self.trainer.scaler = torch.cuda.amp.GradScaler()
 
         # log hyper-parameters
-        if self.trainer.logger is not None:
+        if self.trainer.logger is not None and (not hasattr(ref_model.hparams_initial, 'log_hparams') or ref_model.hparams_initial.log_hparams):
             # save exp to get started (this is where the first experiment logs are written)
             self.trainer.logger.log_hyperparams(ref_model.hparams_initial)
             self.trainer.logger.log_graph(ref_model)
